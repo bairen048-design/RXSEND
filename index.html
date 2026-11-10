@@ -13,7 +13,7 @@ header{display:flex;align-items:center;gap:12px;background:#122c50;border-bottom
 nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px 20px;background:#0b192c;border-bottom:1px solid #163956}
 button{font:inherit;color:#f0faff;cursor:pointer;border:1px solid #1684c4;border-radius:3px;background:#105084;padding:7px 12px}
 button:hover:not(:disabled){filter:brightness(1.22)}button:focus-visible,input:focus-visible{outline:2px solid #b9f2ff;outline-offset:3px}button:disabled{cursor:default;opacity:.55}
-nav button{font-size:13px;background:#142c48}nav button.active{background:#106788}nav #music-toggle{margin-left:auto}
+nav button{font-size:13px;background:#142c48}nav button.active{background:#106788}nav #reset{margin-left:auto}
 main{padding:18px 24px 20px;min-height:490px;background:radial-gradient(ellipse at top right,#16476b70,transparent 55%)}
 h1{display:inline-block;margin:0;padding:4px 10px;border:1px solid #178fb7;background:#124260;color:var(--cyan);font-size:17px;letter-spacing:.5px}
 p{margin:9px 0}.desc{color:#e0ebf5}.play{width:min(620px,100%);margin:24px auto 0;text-align:center}.status{min-height:27px;margin-top:13px;font-weight:bold}.muted{color:var(--dim);font-size:13px}
@@ -53,7 +53,7 @@ canvas{display:block;width:100%;height:auto;background:#080f22;border-radius:6px
 .score{font-size:34px;color:var(--cyan);font-weight:bold;font-variant-numeric:tabular-nums}
 .rank-dialog{max-width:min(460px,calc(100% - 24px));width:100%;color:var(--ink);background:#112c50;border:1px solid #236a96;padding:20px}
 .rank-dialog::backdrop{background:#050b15b8}.rank-dialog ol{padding-left:24px}.rank-dialog li{padding:4px 0;overflow-wrap:anywhere}
-@media(max-width:480px){main{padding:14px;min-height:460px}header,nav,footer{padding-inline:12px}nav #music-toggle{margin-left:0}}
+@media(max-width:480px){main{padding:14px;min-height:460px}header,nav,footer{padding-inline:12px}nav #reset{margin-left:0}}
 </style>
 <div class="terminal">
   <header><span class="sigil" aria-hidden="true">✧</span><div><div class="brand">GOC 奇术终端</div><div class="sub">THAUMATURGY TERMINAL · SECURE CHANNEL</div></div><button id="ranking" class="rank-button">在线排名</button><span class="badge" id="mode" hidden></span><div class="music-controls"><select id="music-track" aria-label="选择背景音乐"><option value="">DJ冷冰冰 - 雨爱</option><option value="music/hero.mp3">FLOW - HERO 〜希望の歌〜</option><option value="music/change.mp3">miwa - chAngE</option><option value="music/ninelie.mp3">Aimer,EGOIST - ninelie</option><option value="music/hopes-and-dreams.mp3">SayMaxWell - Hopes and Dreams</option></select><button id="music-toggle" aria-pressed="false">音乐：关</button></div></header>
