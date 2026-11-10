@@ -95,7 +95,6 @@ function showLobby() {
   nav.hidden = true;
   clock.hidden = true;
   modeLabel.hidden = true;
-  music.pause();
   main.innerHTML = '<section class="lobby"><h1>GOC补习班</h1><div class="lobby-actions"><button class="primary" id="exam">GOC考试</button><button class="primary" id="practice">小题特训</button></div><div class="lobby-author"><p>作者———哔哩哔哩-小小白仁ovo</p><p class="resource-group">资源群 QQ群：1107520691</p></div></section>';
   main.querySelector('#exam').onclick = examEntry;
   main.querySelector('#practice').onclick = () => start(1);
@@ -133,7 +132,7 @@ document.querySelector('#ranking').onclick = async () => {
   rankList.replaceChildren();
   rankDialog.showModal();
   if (!ranking.url || !ranking.key) {
-    rankStatus.textContent = '共享成绩库尚未连接。';
+    rankStatus.textContent = '目前是滚木 上线遥遥无期';
     return;
   }
   rankStatus.textContent = '正在读取成绩…';
@@ -190,7 +189,7 @@ function setMusicEnabled(enabled) {
 }
 
 function playMusic() {
-  if (musicEnabled && screen === 'play' && finishedAt === null && music.paused) {
+  if (musicEnabled && music.paused) {
     music.play().catch(error => {
       if (error.name !== 'AbortError') setMusicEnabled(false);
     });
@@ -248,7 +247,6 @@ function pass(status) {
     if (!mode && stage < 4) { show(stage + 1); return; }
     cancelStage();
     finishedAt = completedAt;
-    music.pause();
     const elapsed = Math.round(finishedAt - startedAt);
     main.innerHTML = '<h1>' + (mode ? '训练完成' : '考试完成') + '</h1><div class="play"><p>本次用时</p><p class="score">' +
       formatResult(elapsed) + '</p><p id="result-status" class="muted" aria-live="polite"></p><div class="lobby-actions"><button class="primary" id="again">再练一次</button><button id="submit-score" hidden>提交到在线排名</button></div></div>';
