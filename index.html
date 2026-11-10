@@ -39,7 +39,12 @@ canvas{display:block;width:100%;height:auto;background:#080f22;border-radius:6px
 [hidden]{display:none!important}
 .lobby{position:relative;min-height:440px;display:grid;place-content:center;text-align:center;padding:20px 12px 64px}
 .lobby h1{margin:0 0 26px;border:0;background:none;font-size:clamp(42px,8vw,82px);font-weight:950;line-height:1.15;color:#5edaff;letter-spacing:.04em;text-shadow:0 4px #125993,0 9px #091527,0 0 30px #1287dc70}
-.lobby-author{position:absolute;right:0;bottom:0;color:#b9d4e8;font-size:12px}
+.lobby-author{position:absolute;right:0;bottom:0;text-align:right;color:#b9d4e8;font-size:12px}
+.lobby-author p{margin:3px 0}.resource-group{color:#72dcf5}
+.music-controls{margin-left:auto;display:flex;gap:6px;align-items:center}
+.music-controls select{width:min(195px,35vw);min-width:0;padding:6px;color:var(--ink);background:#0b192c;border:1px solid #1684c4;border-radius:3px;font:inherit;font-size:13px}
+.music-controls button{font-size:13px;white-space:nowrap}.music-controls button.active{background:#106788}
+@media(max-width:660px){header{flex-wrap:wrap}.music-controls{flex-basis:100%;justify-content:flex-end}.music-controls select{width:min(195px,60vw)}}
 .lobby-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
 .rank-button{margin-left:auto;white-space:nowrap}
 #mode{margin-left:0}
@@ -51,9 +56,9 @@ canvas{display:block;width:100%;height:auto;background:#080f22;border-radius:6px
 @media(max-width:480px){main{padding:14px;min-height:460px}header,nav,footer{padding-inline:12px}nav #music-toggle{margin-left:0}}
 </style>
 <div class="terminal">
-  <header><span class="sigil" aria-hidden="true">✧</span><div><div class="brand">GOC 奇术终端</div><div class="sub">THAUMATURGY TERMINAL · SECURE CHANNEL</div></div><button id="ranking" class="rank-button">在线排名</button><span class="badge" id="mode" hidden></span></header>
+  <header><span class="sigil" aria-hidden="true">✧</span><div><div class="brand">GOC 奇术终端</div><div class="sub">THAUMATURGY TERMINAL · SECURE CHANNEL</div></div><button id="ranking" class="rank-button">在线排名</button><span class="badge" id="mode" hidden></span><div class="music-controls"><select id="music-track" aria-label="选择背景音乐"><option value="">DJ冷冰冰 - 雨爱</option><option value="music/hero.mp3">FLOW - HERO 〜希望の歌〜</option><option value="music/change.mp3">miwa - chAngE</option><option value="music/ninelie.mp3">Aimer,EGOIST - ninelie</option><option value="music/hopes-and-dreams.mp3">SayMaxWell - Hopes and Dreams</option></select><button id="music-toggle" aria-pressed="false">音乐：关</button></div></header>
   <nav aria-label="练习模式" id="nav">
-    <button id="back-home">首页</button><button data-stage="1">1 能量校准</button><button data-stage="2">2 西蒙符印</button><button data-stage="3">3 密码破解</button><button data-stage="4">4 符文转轮</button><button id="music-toggle" aria-pressed="false" title="DJ冷冰冰 - 雨爱">背景音乐：关</button><button id="reset">重新开始</button>
+    <button id="back-home">首页</button><button data-stage="1">1 能量校准</button><button data-stage="2">2 西蒙符印</button><button data-stage="3">3 密码破解</button><button data-stage="4">4 符文转轮</button><button id="reset">重新开始</button>
   </nav>
   <main id="main"></main>
   <footer><span>RXSEND MIO · GOC 训练 · <a style="color:#76e2ff" href="downloads/gmod-dark-join.zip" download>下载 GMod 护眼补丁</a></span><span id="clock">用时 00:00</span></footer>
@@ -91,7 +96,7 @@ function showLobby() {
   clock.hidden = true;
   modeLabel.hidden = true;
   music.pause();
-  main.innerHTML = '<section class="lobby"><h1>GOC补习班</h1><div class="lobby-actions"><button class="primary" id="exam">GOC考试</button><button class="primary" id="practice">小题特训</button></div><p class="lobby-author">作者———哔哩哔哩-小小白仁ovo</p></section>';
+  main.innerHTML = '<section class="lobby"><h1>GOC补习班</h1><div class="lobby-actions"><button class="primary" id="exam">GOC考试</button><button class="primary" id="practice">小题特训</button></div><div class="lobby-author"><p>作者———哔哩哔哩-小小白仁ovo</p><p class="resource-group">资源群 QQ群：1107520691</p></div></section>';
   main.querySelector('#exam').onclick = examEntry;
   main.querySelector('#practice').onclick = () => start(1);
 }
@@ -171,19 +176,21 @@ function recordExam(ms, message, submit) {
 }
 const music = document.querySelector('#background-music');
 const musicToggle = document.querySelector('#music-toggle');
+const musicTrack = document.querySelector('#music-track');
+const originalTrack = music.getAttribute('src');
 music.volume = 0.5;
 let musicEnabled = false;
 
 function setMusicEnabled(enabled) {
   musicEnabled = enabled;
-  musicToggle.textContent = '背景音乐：' + (enabled ? '开' : '关');
+  musicToggle.textContent = '音乐：' + (enabled ? '开' : '关');
   musicToggle.setAttribute('aria-pressed', String(enabled));
   musicToggle.classList.toggle('active', enabled);
   if (!enabled) music.pause();
 }
 
 function playMusic() {
-  if (musicEnabled && finishedAt === null && music.paused) {
+  if (musicEnabled && screen === 'play' && finishedAt === null && music.paused) {
     music.play().catch(error => {
       if (error.name !== 'AbortError') setMusicEnabled(false);
     });
@@ -192,6 +199,10 @@ function playMusic() {
 
 musicToggle.onclick = () => {
   setMusicEnabled(!musicEnabled);
+  playMusic();
+};
+musicTrack.onchange = () => {
+  music.src = musicTrack.value || originalTrack;
   playMusic();
 };
 
