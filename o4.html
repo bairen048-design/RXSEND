@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>O4 小游戏 · 本地练习</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#19323a,#0b1119);color:#d4e1e8;font:15px/1.5 "Microsoft YaHei",sans-serif;padding:24px 12px}
+.window{max-width:1050px;margin:auto;background:#282828;border:1px solid #636363;box-shadow:0 18px 60px #0009}
+header{background:#3b3b3b;padding:7px 14px;display:flex;justify-content:space-between;gap:10px}header a{color:#85d8ff}
+.body{display:grid;grid-template-columns:250px 1fr;gap:20px;padding:20px}
+aside p{font-size:13px;color:#9eb8c6}aside h1{font-size:25px;margin:6px 0 20px}
+button{color:white;font:inherit;cursor:pointer;border:1px solid #72b9e3;background:#3d8fc7;padding:7px 15px}button:hover{filter:brightness(1.15)}button:disabled{opacity:.5;cursor:default}
+.menu{display:block;width:100%;margin-bottom:12px;text-align:left;background:#102736;border:0;border-top:4px solid #48a8e2;padding:16px}.menu strong{display:block;font-size:19px}.menu small{display:block;margin-top:8px;color:#99b6c8}.menu.active{background:#183d55}
+main{text-align:center;min-height:510px;background:#252525;border:1px solid #414141;padding:18px}
+h2{font-size:19px;font-weight:normal;margin:0 0 12px}.status{min-height:28px;color:#6fe4cd;margin:12px 0}.note{font-size:12px;color:#a7b3ba}.board{display:grid;margin:12px auto;max-width:100%;width:432px;touch-action:manipulation}
+.cell{position:relative;aspect-ratio:1;border:1px solid #30353a;background:#0a0c10;display:grid;place-items:center;padding:0;font-size:18px}
+.wall{background:#444}.goal::before{content:"";width:45%;height:45%;background:#32d452}.box::after{content:"";position:absolute;inset:14%;background:#8c5a22;border:3px solid #d29236;box-shadow:inset 0 0 0 3px #6d481f}.box.goal::after{background:#36905a;border-color:#66e897}.player::after{content:"";position:absolute;inset:15%;background:#4dacf2;border:2px solid #7ac5ff}
+.pad{display:grid;grid-template-columns:repeat(3,50px);gap:5px;width:max-content;margin:18px auto}.pad button{padding:7px}.tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.mine{background:#343e48;border:2px outset #647380;color:#79d3ff;font:bold 17px monospace}.mine.open{background:#171d24;border:1px solid #35404a}.mine.flag{color:#ffcd69}.mine.bomb{color:#ff7b72}
+.pipe-frame{position:relative;width:calc(100% - 76px);max-width:378px;margin:12px auto}
+.pipe-frame .pipes{grid-template-columns:repeat(7,1fr);width:100%;margin:0}
+.pipe{background:#10232c}.pipe svg{width:100%;height:100%}.pipe.connected{background:#174a44}
+.endpoint{position:absolute;top:35.7142857%;transform:translateY(-50%);color:#60e1eb;font-size:13px;font-weight:bold;pointer-events:none}
+.endpoint.in{right:calc(100% + 16px)}.endpoint.out{left:calc(100% + 16px)}
+.tetris{display:flex;gap:18px;justify-content:center}.tetris canvas{max-width:65%;height:auto;background:#080a0e;touch-action:none}.next{width:100px;max-width:100%}.info{text-align:left;font-size:14px}
+footer{padding:8px 20px;border-top:1px solid #444;display:flex;justify-content:space-between;gap:12px;color:#9db4c2;font-size:12px}
+@media(max-width:650px){.body{grid-template-columns:1fr;padding:12px;gap:12px}.menu{display:inline-block;width:calc(50% - 6px);vertical-align:top;padding:8px;margin:2px}aside h1{margin:4px 0}main{padding:12px}.board{width:min(100%,378px)}}
+</style>
+<div class="window"><header><span>IPS 入侵防御系统 · O4 训练模式</span><a href="index.html">返回 GOC 补习班</a></header>
+<div class="body"><aside><p>训练模式</p><h1>自由演练</h1><p>选择小游戏进行练习。</p>
+<button class="menu" data-game="boxes"><strong>推箱子</strong><small>把两个箱子推到绿色目标点。</small></button>
+<button class="menu" data-game="tetris"><strong>俄罗斯方块</strong><small>累计消除三行。</small></button>
+<button class="menu" data-game="mines"><strong>扫雷</strong><small>翻开所有安全格，标记地雷。</small></button>
+<button class="menu" data-game="pipes"><strong>管道接线</strong><small>旋转管道，接通数据链路。</small></button></aside>
+<main id="main"></main></div><footer><span>作者———哔哩哔哩-小小白仁ovo</span><span id="time"></span></footer></div>
+<script>
+'use strict';
+const main=document.querySelector('#main');
+let current='',cleanup=()=>{},started=performance.now(),finished=null;
+function begin(game){
+ cleanup();cleanup=()=>{};current=game;started=performance.now();finished=null;
+ document.querySelectorAll('.menu').forEach(b=>b.classList.toggle('active',b.dataset.game===game));
+ ({boxes,tetris,mines,pipes})[game]();
+}
+function layout(title,body){
+ main.innerHTML='<h2>'+title+'</h2>'+body+'<p class="status" role="status"></p><div class="tools"><button id="retry">重来</button></div>';
+ main.querySelector('#retry').onclick=()=>begin(current);
+ return main.querySelector('.status');
+}
+function win(status){if(finished!==null)return;finished=performance.now();status.textContent='完成！用时 '+((finished-started)/1000).toFixed(2)+' 秒';}
+function pad(move){
+ const div=document.createElement('div');div.className='pad';
+ div.innerHTML='<span></span><button data-dir="0">↑</button><span></span><button data-dir="3">←</button><span></span><button data-dir="1">→</button><span></span><button data-dir="2">↓</button>';
+ main.querySelector('.status').before(div);
+ div.querySelectorAll('button').forEach(b=>b.onclick=()=>move(Number(b.dataset.dir)));
+}
+const directions=[[0,-1],[1,0],[0,1],[-1,0]];
+function boxes(){
+ const maps=[
+  ['#########','####...##','#.$...#@#','#.......#','#.$..g..#','#########'],
+  ['#########','##......#','#.$...#@#','#.......#','#.$..g..#','#########']
+ ];
+ const raw=maps[Math.floor(Math.random()*maps.length)];
+ // The first goal sits beneath the left-hand target from the reference map.
+ const walls=new Set(),goals=new Set([3*9+1,4*9+5]),crates=new Set();
+ let player=0,moves=0;const history=[];
+ raw.forEach((row,y)=>Array.from(row).forEach((c,x)=>{
+  const p=y*9+x;if(c==='#')walls.add(p);if(c==='$')crates.add(p);if(c==='@')player=p;
+ }));
+ const status=layout('推箱子','<div class="board" id="boxboard" aria-label="推箱子地图"></div><p class="note">方向键 / WASD 移动，箱子只能推。支持撤销。</p>');
+ const board=main.querySelector('#boxboard');board.style.gridTemplateColumns='repeat(9,1fr)';
+ function render(){
+  board.replaceChildren();
+  for(let p=0;p<raw.length*9;p++){
+   const cell=document.createElement('div');cell.className='cell'+(walls.has(p)?' wall':'')+(goals.has(p)?' goal':'')+(crates.has(p)?' box':'')+(player===p?' player':'');board.append(cell);
+  }
+  if([...crates].every(p=>goals.has(p)))win(status);else status.textContent='移动 '+moves+' 步';
+ }
+ function move(d){
+  if(finished!==null)return;
+  const [dx,dy]=directions[d],next=player+dx+dy*9;
+  if(walls.has(next))return;
+  const pushed=next+dx+dy*9;
+  if(crates.has(next)&&(walls.has(pushed)||crates.has(pushed)))return;
+  history.push({player,crates:[...crates],moves});
+  if(crates.delete(next))crates.add(pushed);player=next;moves++;render();
+ }
+ pad(move);
+ const undo=document.createElement('button');undo.textContent='撤销';main.querySelector('.tools').prepend(undo);
+ undo.onclick=()=>{const old=history.pop();if(!old)return;player=old.player;moves=old.moves;crates.clear();old.crates.forEach(p=>crates.add(p));finished=null;render();};
+ const key=e=>{const d={ArrowUp:0,w:0,ArrowRight:1,d:1,ArrowDown:2,s:2,ArrowLeft:3,a:3}[e.key];if(d!==undefined){e.preventDefault();move(d);}};
+ window.addEventListener('keydown',key);cleanup=()=>window.removeEventListener('keydown',key);render();
+}
+function mines(){
+ const size=9,count=10;let placed=false,done=false;
+ const bombs=new Set(),open=new Set(),flags=new Set();
+ const status=layout('扫雷','<p class="note">左键翻格，右键插旗。手机可切换插旗模式。首格及周围安全。</p><div class="board" id="mineboard"></div>');
+ const board=main.querySelector('#mineboard');board.style.gridTemplateColumns='repeat(9,1fr)';
+ const flagMode=document.createElement('button');flagMode.textContent='插旗模式：关';main.querySelector('.tools').prepend(flagMode);let flagging=false;
+ flagMode.onclick=()=>{flagging=!flagging;flagMode.textContent='插旗模式：'+(flagging?'开':'关');};
+ function neighbors(p){
+  const list=[],x=p%size,y=Math.floor(p/size);
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if((dx||dy)&&x+dx>=0&&x+dx<size&&y+dy>=0&&y+dy<size)list.push((y+dy)*size+x+dx);
+  return list;
+ }
+ function render(){
+  board.replaceChildren();
+  for(let p=0;p<size*size;p++){
+   const cell=document.createElement('button');cell.className='cell mine'+(open.has(p)?' open':'')+(flags.has(p)?' flag':'');
+   cell.setAttribute('aria-label','第 '+(Math.floor(p/size)+1)+' 行第 '+(p%size+1)+' 列');
+   if(open.has(p)){const n=neighbors(p).filter(q=>bombs.has(q)).length;cell.textContent=bombs.has(p)?'✹':n||'';if(bombs.has(p))cell.classList.add('bomb');}else if(flags.has(p))cell.textContent='⚑';
+   cell.onclick=()=>act(p,flagging);cell.oncontextmenu=e=>{e.preventDefault();act(p,true);};board.append(cell);
+  }
+  if(!done)status.textContent='地雷 '+count+' · 已插旗 '+flags.size;
+ }
+ function act(p,flag){
+  if(done||open.has(p))return;
+  if(flag){if(flags.has(p))flags.delete(p);else if(flags.size<count)flags.add(p);render();return;}
+  if(flags.has(p))return;
+  if(!placed){
+   const safe=new Set([p,...neighbors(p)]);
+   while(bombs.size<count){const q=Math.floor(Math.random()*size*size);if(!safe.has(q))bombs.add(q);}placed=true;
+  }
+  if(bombs.has(p)){done=true;bombs.forEach(q=>open.add(q));render();status.textContent='触雷，请重来';return;}
+  const queue=[p];
+  while(queue.length){const q=queue.pop();if(open.has(q)||flags.has(q))continue;open.add(q);if(!neighbors(q).some(n=>bombs.has(n)))queue.push(...neighbors(q));}
+  if(open.size===size*size-count){done=true;render();win(status);}else render();
+ }
+ render();
+}
+function pipes(){
+ const size=7,tiles=Array(49).fill(0);
+ // Preserve a solution while adding unrelated branches and dead ends around it.
+ const layouts=[
+  [[0,2],[0,3],[1,3],[1,2],[1,1],[1,0],[2,0],[3,0],[3,1],[4,1],[4,2],[4,3],[4,4],[3,4],[3,5],[4,5],[5,5],[6,5],[6,4],[6,3],[6,2]],
+  [[0,2],[0,3],[1,3],[1,2],[1,1],[2,1],[3,1],[3,2],[3,3],[2,3],[2,4],[2,5],[1,5],[1,6],[2,6],[3,6],[4,6],[4,5],[4,4],[5,4],[5,3],[6,3],[6,2]]
+ ];
+ let route=layouts[Math.floor(Math.random()*layouts.length)];
+ if(Math.random()<.5)route=route.map(([x,y])=>[6-x,y]).reverse();
+ const bit=(a,b)=>1<<directions.findIndex(([dx,dy])=>b[0]-a[0]===dx&&b[1]-a[1]===dy);
+ route.forEach((p,i)=>{tiles[p[1]*size+p[0]]=(i?bit(p,route[i-1]):8)|(i<route.length-1?bit(p,route[i+1]):2);});
+ const unused=tiles.flatMap((n,p)=>n?[]:[p]);
+ for(let i=unused.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[unused[i],unused[j]]=[unused[j],unused[i]];}
+ const decoys=[3,5,7,1,3,5];
+ unused.slice(0,12).forEach(p=>{tiles[p]=decoys[Math.floor(Math.random()*decoys.length)];});
+ // A few real-route tees make choosing the correct continuation necessary.
+ for(let i=2;i<route.length-2;i+=6){
+  const [x,y]=route[i],p=y*size+x;
+  const branches=directions.flatMap(([dx,dy],d)=>{
+   const nx=x+dx,ny=y+dy;
+   return nx>=0&&nx<size&&ny>=0&&ny<size&&!(tiles[p]&(1<<d))?[d]:[];
+  });
+  if(branches.length)tiles[p]|=1<<branches[Math.floor(Math.random()*branches.length)];
+ }
+ const rotate=n=>((n<<1)&15)|(n>>3);
+ tiles.forEach((n,p)=>{for(let k=Math.floor(Math.random()*4);k>0;k--)n=rotate(n);tiles[p]=n;});
+ const status=layout('管道接线','<p class="note">点击管道顺时针旋转，接通数据链路。</p><div class="pipe-frame"><span class="endpoint in">IN</span><div class="board pipes"></div><span class="endpoint out">OUT</span></div>');
+ const board=main.querySelector('.pipes');
+ function render(){
+  const connected=new Set(),queue=(tiles[14]&8)?[14]:[];
+  while(queue.length){
+   const p=queue.pop();if(connected.has(p))continue;connected.add(p);
+   directions.forEach(([dx,dy],d)=>{const x=p%size+dx,y=Math.floor(p/size)+dy,q=y*size+x;if(x>=0&&x<size&&y>=0&&y<size&&(tiles[p]&(1<<d))&&(tiles[q]&(1<<((d+2)%4))))queue.push(q);});
+  }
+  board.replaceChildren();
+  tiles.forEach((n,p)=>{
+   const cell=document.createElement('button');cell.className='cell pipe'+(connected.has(p)?' connected':'');cell.disabled=!n||finished!==null;
+   cell.setAttribute('aria-label','旋转第 '+(p+1)+' 格');
+   const ends=[[50,0],[100,50],[50,100],[0,50]];
+   cell.innerHTML='<svg viewBox="0 0 100 100">'+ends.map(([x,y],d)=>n&(1<<d)?'<path d="M50 50 L'+x+' '+y+'" stroke="#59e4ed" stroke-width="3"/>':'').join('')+'<circle cx="50" cy="50" r="6" fill="#72f0ed"/></svg>';
+   if(!n)cell.innerHTML='';cell.onclick=()=>{tiles[p]=rotate(tiles[p]);render();};board.append(cell);
+  });
+  if(connected.has(20)&&(tiles[20]&2)){win(status);board.querySelectorAll('button').forEach(b=>b.disabled=true);}
+ }
+ render();
+}
+function tetris(){
+ const colors=['','#51acf1','#ffd345','#ba4ce9','#49ce74','#ee5e76','#ee9b42','#637cf0'];
+ const shapes=[[[1,1,1,1]],[[2,2],[2,2]],[[0,3,0],[3,3,3]],[[0,4,4],[4,4,0]],[[5,5,0],[0,5,5]],[[6,0,0],[6,6,6]],[[0,0,7],[7,7,7]]];
+ const grid=Array.from({length:16},()=>Array(10).fill(0));
+ let bag=[],piece,x=3,y=0,cleared=0,over=false;
+ function pick(){if(!bag.length){bag=[...shapes];for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}}return bag.pop().map(row=>row.slice());}
+ let next=pick();
+ const status=layout('俄罗斯方块','<div class="tetris"><canvas width="240" height="384" id="blocks"></canvas><div class="info"><p>目标：消除 <b>3</b> 行</p><p id="lines"></p><p>下一个</p><canvas class="next" width="100" height="80" id="next"></canvas></div></div><div class="tools" id="moves"><button data-action="left">←</button><button data-action="right">→</button><button data-action="rotate">↻</button><button data-action="drop">↓ 落底</button></div><p class="note">← → 移动 · ↑ 旋转 · ↓ 加速 · 空格落底</p>');
+ const canvas=main.querySelector('#blocks'),ctx=canvas.getContext('2d'),preview=main.querySelector('#next').getContext('2d');
+ function valid(shape,px,py){return shape.every((row,dy)=>row.every((v,dx)=>!v||(px+dx>=0&&px+dx<10&&py+dy<16&&(py+dy<0||!grid[py+dy][px+dx]))));}
+ function spawn(){piece=next;next=pick();x=Math.floor((10-piece[0].length)/2);y=0;if(!valid(piece,x,y)){over=true;status.textContent='堆叠到顶，请重来';}draw();}
+ function square(context,v,px,py,size){context.fillStyle=colors[v];context.fillRect(px*size+1,py*size+1,size-2,size-2);}
+ function draw(){
+  ctx.fillStyle='#080a0e';ctx.fillRect(0,0,240,384);ctx.strokeStyle='#262a30';
+  for(let i=0;i<=16;i++){ctx.beginPath();ctx.moveTo(0,i*24);ctx.lineTo(240,i*24);ctx.stroke();}
+  for(let i=0;i<=10;i++){ctx.beginPath();ctx.moveTo(i*24,0);ctx.lineTo(i*24,384);ctx.stroke();}
+  grid.forEach((row,py)=>row.forEach((v,px)=>{if(v)square(ctx,v,px,py,24);}));
+  piece.forEach((row,dy)=>row.forEach((v,dx)=>{if(v)square(ctx,v,x+dx,y+dy,24);}));
+  preview.clearRect(0,0,100,80);next.forEach((row,py)=>row.forEach((v,px)=>{if(v)square(preview,v,px,py,20);}));
+  main.querySelector('#lines').textContent='已消除：'+cleared+'/3';
+ }
+ function down(){
+  if(over||finished!==null)return;
+  if(valid(piece,x,y+1)){y++;draw();return;}
+  piece.forEach((row,dy)=>row.forEach((v,dx)=>{if(v)grid[y+dy][x+dx]=v;}));
+  for(let r=15;r>=0;r--)if(grid[r].every(Boolean)){grid.splice(r,1);grid.unshift(Array(10).fill(0));cleared++;r++;}
+  if(cleared>=3){draw();win(status);return;}spawn();
+ }
+ function action(name){
+  if(over||finished!==null)return;
+  if(name==='left'&&valid(piece,x-1,y))x--;
+  if(name==='right'&&valid(piece,x+1,y))x++;
+  if(name==='rotate'){
+   const rotated=piece[0].map((_,i)=>piece.map(row=>row[i]).reverse());
+   for(const offset of [0,-1,1,-2,2])if(valid(rotated,x+offset,y)){piece=rotated;x+=offset;break;}
+  }
+  if(name==='down'){down();return;}
+  if(name==='drop'){while(valid(piece,x,y+1))y++;down();return;}draw();
+ }
+ main.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>action(b.dataset.action));
+ const key=e=>{if(e.target.tagName==='BUTTON'&&e.key===' ')e.preventDefault();const name={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'rotate',ArrowDown:'down',' ':'drop'}[e.key];if(name){e.preventDefault();action(name);}};
+ window.addEventListener('keydown',key);
+ const timer=setInterval(down,650);cleanup=()=>{clearInterval(timer);window.removeEventListener('keydown',key);};spawn();
+}
+document.querySelectorAll('[data-game]').forEach(b=>b.onclick=()=>begin(b.dataset.game));
+setInterval(()=>document.querySelector('#time').textContent='用时 '+(((finished??performance.now())-started)/1000).toFixed(1)+' 秒',200);
+begin('boxes');
+</script></html>
+
